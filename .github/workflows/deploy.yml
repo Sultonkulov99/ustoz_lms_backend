@@ -24,12 +24,12 @@ jobs:
           script: |
             set -e
             APP_DIR=/var/www/lms/backend
-            mkdir -p $APP_DIR /var/www/lms/uploads
-            chown -R 1001:1001 /var/www/lms/uploads
+            sudo mkdir -p $APP_DIR /var/www/lms/uploads
+            sudo chown -R 1001:1001 /var/www/lms/uploads
             cd $APP_DIR
             REPO=https://github.com/Sultonkulov99/ustoz_lms_backend.git
             if [ ! -d .git ]; then
-              git clone $REPO .
+              sudo git clone $REPO .
             else
               git remote set-url origin $REPO
               git fetch origin main
