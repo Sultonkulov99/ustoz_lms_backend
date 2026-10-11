@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres_db
+    restart: always
+    env_file: .env
+    mem_limit: 400m
+    shm_size: 128mb
+    command: >
+      postgres
+      -c shared_buffers=128MB
+      -c effective_cache_size=384MB
+      -c work_mem=4MB
+      -c max_connections=50
+      -c log_min_duration_statement=1000
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [lms-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache
+    restart: always
+    env_file: .env
+    mem_limit: 150m
+    command: >
+      sh -c 'redis-server --requirepass "$$REDIS_PASSWORD"
+      --maxmemory 100mb --maxmemory-policy allkeys-lru
+      --save "" --appendonly no'
+    networks: [lms-net]
+    healthcheck:
+      test: ["CMD-SHELL", 'redis-cli -a "$$REDIS_PASSWORD" ping | grep PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "2" }
+
+  app:
+    build: .
+    container_name: backend_app
+    restart: always
+    env_file: .env
+    mem_limit: 350m
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=256"
+    ports:
+      - "3000:9000"
+    volumes:
+      - /var/www/lms/uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [lms-net]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  pgdata:
+
+networks:
+  lms-net:
+    driver: bridge
