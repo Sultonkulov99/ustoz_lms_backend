@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -21,24 +23,38 @@ jobs:
           port: 22
           timeout: 60s
           command_timeout: 30m
+          envs: ENV_FILE
           script: |
             set -e
             APP_DIR=/var/www/lms/backend
             sudo mkdir -p $APP_DIR /var/www/lms/uploads
+            sudo chown -R $USER:$USER $APP_DIR
             sudo chown -R 1001:1001 /var/www/lms/uploads
+            git config --global --add safe.directory $APP_DIR || true
+
             cd $APP_DIR
             REPO=https://github.com/Sultonkulov99/ustoz_lms_backend.git
             if [ ! -d .git ]; then
-              sudo git clone $REPO .
+              git clone $REPO .
             else
               git remote set-url origin $REPO
               git fetch origin main
               git reset --hard origin/main
             fi
 
-            if [ ! -f .env ]; then
-              echo "❌ .env topilmadi: $APP_DIR/.env yarating (.env.example'dan)"
-              exit 1
+            # 1. Agar GitHub Actions Secret'da ENV_FILE bo'lsa, undan yaratamiz
+            # 2. Aks holda serverda .env mavjud bo'lmasa, .env.example dan nusxalaymiz
+            if [ -n "$ENV_FILE" ]; then
+              echo "$ENV_FILE" > .env
+              echo "✅ .env fayli GitHub Secrets'dan yangilandi"
+            elif [ ! -f .env ]; then
+              if [ -f .env.example ]; then
+                cp .env.example .env
+                echo "⚠️ .env mavjud emas edi, .env.example dan nusxalandi"
+              else
+                echo "❌ .env topilmadi: $APP_DIR/.env yarating"
+                exit 1
+              fi
             fi
 
             # down QILINMAYDI: avval build, keyin faqat o'zgargan containerlar almashadi
