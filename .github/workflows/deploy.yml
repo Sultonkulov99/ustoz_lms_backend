@@ -26,6 +26,17 @@ jobs:
           envs: ENV_FILE
           script: |
             set -e
+            export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin
+
+            # Docker mavjudligini tekshirish, bo'lmasa avtomatik o'rnatish
+            if ! command -v docker &> /dev/null; then
+              echo "📦 Docker topilmadi, avtomatik o'rnatilmoqda..."
+              curl -fsSL https://get.docker.com | sudo sh
+              sudo systemctl enable --now docker
+              sudo usermod -aG docker $USER || true
+            fi
+            sudo chmod 666 /var/run/docker.sock || true
+
             APP_DIR=/var/www/lms/backend
             sudo mkdir -p $APP_DIR /var/www/lms/uploads
             sudo chown -R $USER:$USER $APP_DIR
