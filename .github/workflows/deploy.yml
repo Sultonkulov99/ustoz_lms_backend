@@ -27,8 +27,7 @@ jobs:
             mkdir -p $APP_DIR /var/www/lms/uploads
             chown -R 1001:1001 /var/www/lms/uploads
             cd $APP_DIR
-
-            REPO=https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/Sultonkulov99/LMS-backend.git
+            REPO=https://github.com/Sultonkulov99/ustoz_lms_backend.git
             if [ ! -d .git ]; then
               git clone $REPO .
             else
